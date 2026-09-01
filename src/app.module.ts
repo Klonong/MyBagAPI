@@ -4,9 +4,11 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { CartModule } from './modules/cart/cart.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PrismaModule } from './database/prisma.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -15,8 +17,10 @@ import configuration from './config/configuration';
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
     PrismaModule,
     AuthModule,
+    CartModule,
     CategoriesModule,
     ProductsModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [AppService],
