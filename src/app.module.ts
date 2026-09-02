@@ -9,6 +9,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { ProductsModule } from './modules/products/products.module';
 import { PrismaModule } from './database/prisma.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -21,6 +22,7 @@ import configuration from './config/configuration';
     CategoriesModule,
     ProductsModule,
     WishlistModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

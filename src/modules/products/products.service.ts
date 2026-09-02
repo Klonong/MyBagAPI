@@ -68,12 +68,12 @@ export class ProductsService {
       by: ['product_id'],
       where: {
         product_id: { in: matchingIds },
-        orders: { status: { not: 'cancelled' } },
+        orders: { order_statuses: { code: { not: 'cancelled' } } },
       },
       _sum: { quantity: true },
     });
     const salesByProduct = new Map(
-      sales.map((sale) => [sale.product_id, sale._sum.quantity ?? 0]),
+      sales.map((sale) => [sale.product_id, sale._sum?.quantity ?? 0]),
     );
     const sortedIds = matchingIds.sort(
       (firstId, secondId) =>

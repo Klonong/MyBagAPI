@@ -40,7 +40,7 @@ export class CartService {
 
     const items = cart.cart_items.map((item) => this.serializeCartItem(item));
     const subtotal = items.reduce(
-      (sum, item) => sum + Number(item.product.price) * item.quantity,
+      (sum, item) => sum + item.product.finalPrice * item.quantity,
       0,
     );
 
@@ -48,7 +48,7 @@ export class CartService {
       id: cart.id,
       items,
       subtotal,
-      totalItems: items.length,
+      totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
     });
   }
 
