@@ -35,6 +35,41 @@ model order_statuses {
   orders      orders[]
 }
 
+model discounts {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String   @db.VarChar(255)
+  code       String   @unique @db.VarChar(100)
+  type       String   @db.VarChar(20)
+  value      Decimal  @db.Decimal(15, 2)
+  starts_at  DateTime @db.Timestamp(6)
+  ends_at    DateTime @db.Timestamp(6)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+
+  @@index([is_active], map: "idx_discounts_is_active")
+  @@index([starts_at, ends_at], map: "idx_discounts_dates")
+}
+
+model store_settings {
+  id           Int      @id @default(1)
+  store_name   String   @default("Pioma") @db.VarChar(255)
+  support_email String? @db.VarChar(255)
+  currency     String   @default("IDR") @db.VarChar(10)
+  updated_at   DateTime @updatedAt @db.Timestamp(6)
+}
+
+model shipping_methods {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique @db.VarChar(50)
+  name       String   @db.VarChar(100)
+  fee        Decimal  @db.Decimal(15, 2)
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  orders     orders[]
+}
+
 model addresses {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id        String   @db.Uuid
@@ -88,9 +123,10 @@ model carts {
 }
 
 model categories {
-  id       BigInt     @id @default(autoincrement())
-  name     String     @unique @db.VarChar(255)
-  products products[]
+  id         BigInt     @id @default(autoincrement())
+  name       String     @unique @db.VarChar(255)
+  updated_at DateTime   @default(now()) @updatedAt @db.Timestamp(6)
+  products   products[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -116,6 +152,7 @@ model orders {
   user_id         String        @db.Uuid
   address_id      String?       @db.Uuid
   status_id       Int           @default(1)
+  shipping_method_id Int?
   delivery_method String        @default("standard") @db.VarChar(50)
   payment_method  String        @default("card") @db.VarChar(50)
   subtotal        Decimal       @db.Decimal(15, 2)
@@ -127,10 +164,12 @@ model orders {
   updated_at      DateTime      @default(now()) @db.Timestamp(6)
   order_items     order_items[]
   order_statuses  order_statuses @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shipping_methods shipping_methods? @relation(fields: [shipping_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   addresses       addresses?    @relation(fields: [address_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users           User          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_orders_user_id")
+  @@index([shipping_method_id], map: "idx_orders_shipping_method_id")
 }
 
 model product_color_images {

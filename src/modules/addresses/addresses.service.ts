@@ -6,6 +6,13 @@ import { CreateAddressDto } from './dto/create-address.dto';
 export class AddressesService {
   constructor(private readonly prisma: PrismaService) {}
 
+  getAddresses(userId: string) {
+    return this.prisma.addresses.findMany({
+      where: { user_id: userId },
+      orderBy: [{ is_default: 'desc' }, { created_at: 'desc' }],
+    });
+  }
+
   create(userId: string, dto: CreateAddressDto) {
     return this.prisma.addresses.create({
       data: {

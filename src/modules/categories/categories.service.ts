@@ -83,12 +83,18 @@ export class CategoriesService {
     throw error;
   }
 
-  private serialize<T extends { id: bigint; _count?: { products: number } }>(
+  private serialize<T extends {
+    id: bigint;
+    updated_at?: Date;
+    _count?: { products: number };
+  }>(
     category: T,
   ) {
     return {
       ...category,
       id: Number(category.id),
+      productCount: category._count?.products ?? 0,
+      ...(category.updated_at && { updatedAt: category.updated_at }),
       ...(category._count && { _count: category._count }),
     };
   }

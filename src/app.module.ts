@@ -11,6 +11,7 @@ import { PrismaModule } from './database/prisma.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
+import { AdminModule } from './modules/admin/admin.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -25,6 +26,7 @@ import configuration from './config/configuration';
     WishlistModule,
     OrdersModule,
     AddressesModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

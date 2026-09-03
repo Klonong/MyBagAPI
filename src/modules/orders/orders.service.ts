@@ -45,8 +45,17 @@ export class OrdersService {
       const discount = Number(item.products.discount ?? 0);
       return sum + (price - discount) * item.quantity;
     }, 0);
-    const shippingFee = dto.deliveryMethod === 'express' ? 25 : 0;
-    const tax = subtotal * 0.11;
+    const shippingMethodCode = dto.deliveryMethod ?? 'standard';
+    const shippingMethod = await this.prisma.shipping_methods.findUnique({
+      where: { code: shippingMethodCode },
+    });
+
+    if (!shippingMethod || !shippingMethod.is_active) {
+      throw new BadRequestException('Shipping method is not available');
+    }
+
+    const shippingFee = Number(shippingMethod.fee);
+    const tax = subtotal * 0.05;
     const total = subtotal + shippingFee + tax;
 
     const order = await this.prisma.orders.create({
@@ -55,7 +64,8 @@ export class OrdersService {
         ...(dto.addressId && {
           addresses: { connect: { id: dto.addressId } },
         }),
-        delivery_method: dto.deliveryMethod ?? 'standard',
+        shipping_methods: { connect: { id: shippingMethod.id } },
+        delivery_method: shippingMethod.code,
         payment_method: dto.paymentMethod ?? 'card',
         subtotal,
         shipping_fee: shippingFee,
