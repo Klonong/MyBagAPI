@@ -27,6 +27,20 @@ const allowedStatuses = [
   'cancelled',
 ];
 
+const publicUserSelect = {
+  id: true,
+  email: true,
+  name: true,
+  phone: true,
+  role: true,
+  is_active: true,
+  createdAt: true,
+  updatedAt: true,
+  avatar_url: true,
+  bio: true,
+  location: true,
+} satisfies Prisma.UserSelect;
+
 @Injectable()
 export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
@@ -125,7 +139,11 @@ export class AdminService {
         skip: (query.page - 1) * query.limit,
         take: query.limit,
         orderBy: { created_at: 'desc' },
-        include: { users: true, order_statuses: true, shipping_methods: true },
+        include: {
+          users: { select: publicUserSelect },
+          order_statuses: true,
+          shipping_methods: true,
+        },
       }),
       this.prisma.orders.count({ where }),
     ]);
@@ -141,7 +159,7 @@ export class AdminService {
     const order = await this.prisma.orders.findUnique({
       where: { id },
       include: {
-        users: true,
+        users: { select: publicUserSelect },
         addresses: true,
         order_statuses: true,
         shipping_methods: true,
@@ -216,7 +234,8 @@ export class AdminService {
   async getCustomer(id: string) {
     const customer = await this.prisma.user.findFirst({
       where: { id, role: 'user' },
-      include: {
+      select: {
+        ...publicUserSelect,
         addresses: true,
         orders: {
           include: { order_statuses: true },
