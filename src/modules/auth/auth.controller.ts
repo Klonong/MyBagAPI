@@ -9,10 +9,11 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import type { Response } from 'express';
-import { AuthService } from './auth.service';
+import type { Request, Response } from 'express';
+import { AuthService, SessionMeta } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ACCESS_TOKEN_COOKIE } from './auth.constants';
 import type { AuthenticatedRequest } from './types/authenticated-request';
@@ -24,9 +25,13 @@ export class AuthController {
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, token } = await this.authService.register(dto);
+    const { user, token } = await this.authService.register(
+      dto,
+      this.sessionMeta(req),
+    );
     this.setAuthCookie(res, token);
     return { user };
   }
@@ -35,16 +40,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async login(
     @Body() dto: LoginDto,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { user, token } = await this.authService.login(dto);
+    const { user, token } = await this.authService.login(
+      dto,
+      this.sessionMeta(req),
+    );
     this.setAuthCookie(res, token);
     return { user };
   }
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  logout(@Res({ passthrough: true }) res: Response) {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const token = (req.cookies as Record<string, string> | undefined)?.[
+      ACCESS_TOKEN_COOKIE
+    ];
+    if (token) {
+      await this.authService.revokeSessionFromToken(token);
+    }
     res.clearCookie(ACCESS_TOKEN_COOKIE);
   }
 
@@ -53,6 +68,23 @@ export class AuthController {
   async me(@Req() req: AuthenticatedRequest) {
     const user = await this.authService.getById(req.user.sub);
     return { user };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async changePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(req.user.sub, dto);
+  }
+
+  private sessionMeta(req: Request): SessionMeta {
+    return {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    };
   }
 
   private setAuthCookie(res: Response, token: string) {

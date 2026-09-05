@@ -12,6 +12,9 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { BadgesModule } from './modules/badges/badges.module';
+import { UsersModule } from './modules/users/users.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -27,6 +30,9 @@ import configuration from './config/configuration';
     OrdersModule,
     AddressesModule,
     AdminModule,
+    BadgesModule,
+    UsersModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

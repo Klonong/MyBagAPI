@@ -2,6 +2,7 @@ import {
   IsArray,
   IsIn,
   IsOptional,
+  IsString,
   IsUUID,
   ArrayMinSize,
 } from 'class-validator';
@@ -23,4 +24,8 @@ export class CreateOrderDto {
   @IsOptional()
   @IsIn(['card', 'bank', 'wallet'])
   paymentMethod?: string;
+
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

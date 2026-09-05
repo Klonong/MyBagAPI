@@ -8,31 +8,36 @@ datasource db {
 }
 
 model User {
-  id                                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                               String           @unique @db.VarChar(255)
-  passwordHash                        String           @map("password_hash") @db.VarChar(255)
-  name                                String?          @db.VarChar(255)
-  phone                               String?          @db.VarChar(255)
-  role                                String           @default("user") @db.VarChar(50)
-  is_active                           Boolean          @default(true)
-  createdAt                           DateTime         @default(now()) @map("created_at") @db.Timestamp(6)
-  updatedAt                           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
+  id                                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                               String            @unique @db.VarChar(255)
+  passwordHash                        String            @map("password_hash") @db.VarChar(255)
+  name                                String?           @db.VarChar(255)
+  phone                               String?           @db.VarChar(255)
+  avatar_url                          String?           @db.VarChar(1000)
+  bio                                 String?           @db.VarChar(1000)
+  location                            String?           @db.VarChar(255)
+  role                                String            @default("user") @db.VarChar(50)
+  is_active                           Boolean           @default(true)
+  createdAt                           DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt                           DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamp(6)
   addresses                           addresses[]
   carts                               carts?
   orders                              orders[]
-  products_products_created_byTousers products[]       @relation("products_created_byTousers")
-  products_products_updated_byTousers products[]       @relation("products_updated_byTousers")
+  products_products_created_byTousers products[]        @relation("products_created_byTousers")
+  products_products_updated_byTousers products[]        @relation("products_updated_byTousers")
   wishlist_items                      wishlist_items[]
+  sessions                            sessions[]
+  product_reviews                     product_reviews[]
 
   @@map("users")
 }
 
 model order_statuses {
-  id          Int      @id @default(autoincrement())
-  code        String   @unique @db.VarChar(50)
-  name        String   @db.VarChar(100)
-  created_at  DateTime @default(now()) @db.Timestamp(6)
-  orders      orders[]
+  id         Int      @id @default(autoincrement())
+  code       String   @unique @db.VarChar(50)
+  name       String   @db.VarChar(100)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  orders     orders[]
 }
 
 model discounts {
@@ -52,11 +57,11 @@ model discounts {
 }
 
 model store_settings {
-  id           Int      @id @default(1)
-  store_name   String   @default("Pioma") @db.VarChar(255)
-  support_email String? @db.VarChar(255)
-  currency     String   @default("IDR") @db.VarChar(10)
-  updated_at   DateTime @updatedAt @db.Timestamp(6)
+  id            Int      @id @default(1)
+  store_name    String   @default("Pioma") @db.VarChar(255)
+  support_email String?  @db.VarChar(255)
+  currency      String   @default("IDR") @db.VarChar(10)
+  updated_at    DateTime @updatedAt @db.Timestamp(6)
 }
 
 model shipping_methods {
@@ -93,8 +98,36 @@ model addresses {
 
 model badges {
   id       BigInt     @id @default(autoincrement())
-  name     String     @db.VarChar(255)
+  name     String     @unique @db.VarChar(255)
   products products[]
+}
+
+model sessions {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String    @db.Uuid
+  ip           String?   @db.VarChar(100)
+  user_agent   String?   @db.VarChar(500)
+  created_at   DateTime  @default(now()) @db.Timestamp(6)
+  last_seen_at DateTime  @default(now()) @db.Timestamp(6)
+  revoked_at   DateTime? @db.Timestamp(6)
+  users        User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_sessions_user_id")
+}
+
+model product_reviews {
+  id         BigInt   @id @default(autoincrement())
+  product_id String   @db.Uuid
+  user_id    String   @db.Uuid
+  rating     Int
+  comment    String?
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  products   products @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      User     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, product_id])
+  @@index([product_id], map: "idx_product_reviews_product_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -148,25 +181,25 @@ model order_items {
 }
 
 model orders {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String        @db.Uuid
-  address_id      String?       @db.Uuid
-  status_id       Int           @default(1)
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  address_id         String?           @db.Uuid
+  status_id          Int               @default(1)
   shipping_method_id Int?
-  delivery_method String        @default("standard") @db.VarChar(50)
-  payment_method  String        @default("card") @db.VarChar(50)
-  subtotal        Decimal       @db.Decimal(15, 2)
-  shipping_fee    Decimal       @default(0) @db.Decimal(15, 2)
-  tax             Decimal       @default(0) @db.Decimal(15, 2)
-  discount        Decimal       @default(0) @db.Decimal(15, 2)
-  total           Decimal       @db.Decimal(15, 2)
-  created_at      DateTime      @default(now()) @db.Timestamp(6)
-  updated_at      DateTime      @default(now()) @db.Timestamp(6)
-  order_items     order_items[]
-  order_statuses  order_statuses @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  shipping_methods shipping_methods? @relation(fields: [shipping_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  addresses       addresses?    @relation(fields: [address_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users           User          @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  delivery_method    String            @default("standard") @db.VarChar(50)
+  payment_method     String            @default("card") @db.VarChar(50)
+  subtotal           Decimal           @db.Decimal(15, 2)
+  shipping_fee       Decimal           @default(0) @db.Decimal(15, 2)
+  tax                Decimal           @default(0) @db.Decimal(15, 2)
+  discount           Decimal           @default(0) @db.Decimal(15, 2)
+  total              Decimal           @db.Decimal(15, 2)
+  created_at         DateTime          @default(now()) @db.Timestamp(6)
+  updated_at         DateTime          @default(now()) @db.Timestamp(6)
+  order_items        order_items[]
+  order_statuses     order_statuses    @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  shipping_methods   shipping_methods? @relation(fields: [shipping_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  addresses          addresses?        @relation(fields: [address_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              User              @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([user_id], map: "idx_orders_user_id")
   @@index([shipping_method_id], map: "idx_orders_shipping_method_id")
@@ -205,26 +238,27 @@ model product_images {
 }
 
 model products {
-  id                               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                             String           @db.VarChar(255)
+  id                               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                             String            @db.VarChar(255)
   description                      String?
-  price                            Decimal          @db.Decimal(15, 2)
-  discount                         Decimal?         @db.Decimal(15, 2)
+  price                            Decimal           @db.Decimal(15, 2)
+  discount                         Decimal?          @db.Decimal(15, 2)
   category_id                      BigInt
   badge_id                         BigInt?
-  created_by                       String?          @db.Uuid
-  updated_by                       String?          @db.Uuid
-  created_at                       DateTime         @default(now()) @db.Timestamp(6)
-  updated_at                       DateTime         @default(now()) @db.Timestamp(6)
+  created_by                       String?           @db.Uuid
+  updated_by                       String?           @db.Uuid
+  created_at                       DateTime          @default(now()) @db.Timestamp(6)
+  updated_at                       DateTime          @default(now()) @db.Timestamp(6)
   cart_items                       cart_items[]
   order_items                      order_items[]
   product_colors                   product_colors[]
   product_images                   product_images[]
-  badges                           badges?          @relation(fields: [badge_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  categories                       categories       @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users_products_created_byTousers User?            @relation("products_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users_products_updated_byTousers User?            @relation("products_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  badges                           badges?           @relation(fields: [badge_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categories                       categories        @relation(fields: [category_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_products_created_byTousers User?             @relation("products_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_products_updated_byTousers User?             @relation("products_updated_byTousers", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   wishlist_items                   wishlist_items[]
+  product_reviews                  product_reviews[]
 
   @@index([badge_id], map: "idx_products_badge_id")
   @@index([category_id], map: "idx_products_category_id")

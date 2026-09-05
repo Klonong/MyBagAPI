@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PrismaService } from '../../database/prisma.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -16,9 +17,12 @@ describe('AuthController', () => {
             register: jest.fn(),
             login: jest.fn(),
             getById: jest.fn(),
+            changePassword: jest.fn(),
+            revokeSessionFromToken: jest.fn(),
           },
         },
         { provide: JwtService, useValue: { verifyAsync: jest.fn() } },
+        { provide: PrismaService, useValue: { sessions: {} } },
       ],
     }).compile();
 

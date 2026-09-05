@@ -83,13 +83,13 @@ export class CategoriesService {
     throw error;
   }
 
-  private serialize<T extends {
-    id: bigint;
-    updated_at?: Date;
-    _count?: { products: number };
-  }>(
-    category: T,
-  ) {
+  private serialize<
+    T extends {
+      id: bigint;
+      updated_at?: Date;
+      _count?: { products: number };
+    },
+  >(category: T) {
     return {
       ...category,
       id: Number(category.id),

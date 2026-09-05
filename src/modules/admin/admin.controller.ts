@@ -40,6 +40,11 @@ export class AdminController {
     return this.adminService.listDiscounts(query);
   }
 
+  @Get('discounts/:id')
+  getDiscount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.adminService.getDiscount(id);
+  }
+
   @Post('discounts')
   createDiscount(@Body() dto: CreateDiscountDto) {
     return this.adminService.createDiscount(dto);

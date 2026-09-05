@@ -53,6 +53,12 @@ export class AdminService {
     return this.pageResponse(items, query.page, query.limit, total);
   }
 
+  async getDiscount(id: string) {
+    const discount = await this.prisma.discounts.findUnique({ where: { id } });
+    if (!discount) throw new NotFoundException('Discount not found');
+    return this.serialize(discount);
+  }
+
   async createDiscount(dto: CreateDiscountDto) {
     if (dto.endsAt <= dto.startsAt) {
       throw new BadRequestException('endsAt must be after startsAt');
@@ -94,7 +100,10 @@ export class AdminService {
       });
       return this.serialize(discount);
     } catch (error) {
-      this.handlePrismaError(error, 'Discount not found or code is already in use');
+      this.handlePrismaError(
+        error,
+        'Discount not found or code is already in use',
+      );
     }
   }
 
@@ -150,7 +159,8 @@ export class AdminService {
     const status = await this.prisma.order_statuses.findUnique({
       where: { code: dto.status },
     });
-    if (!status) throw new BadRequestException('Order status is not configured');
+    if (!status)
+      throw new BadRequestException('Order status is not configured');
     try {
       const order = await this.prisma.orders.update({
         where: { id },
@@ -208,7 +218,10 @@ export class AdminService {
       where: { id, role: 'user' },
       include: {
         addresses: true,
-        orders: { include: { order_statuses: true }, orderBy: { created_at: 'desc' } },
+        orders: {
+          include: { order_statuses: true },
+          orderBy: { created_at: 'desc' },
+        },
       },
     });
     if (!customer) throw new NotFoundException('Customer not found');
@@ -248,25 +261,48 @@ export class AdminService {
       },
       update: {
         ...(dto.storeName !== undefined && { store_name: dto.storeName }),
-        ...(dto.supportEmail !== undefined && { support_email: dto.supportEmail }),
+        ...(dto.supportEmail !== undefined && {
+          support_email: dto.supportEmail,
+        }),
         ...(dto.currency !== undefined && { currency: dto.currency }),
       },
     });
   }
 
-  private pageResponse<T>(items: T[], page: number, limit: number, total: number) {
-    return { items, meta: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } };
+  private pageResponse<T>(
+    items: T[],
+    page: number,
+    limit: number,
+    total: number,
+  ) {
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   }
 
   private serialize(value: unknown): any {
-    return JSON.parse(JSON.stringify(value, (_key, item) =>
-      typeof item === 'bigint' ? Number(item) : item,
-    ));
+    return JSON.parse(
+      JSON.stringify(value, (_key, item) =>
+        typeof item === 'bigint' ? Number(item) : item,
+      ),
+    );
   }
 
   private serializeOrder(order: any) {
     const value = this.serialize(order);
-    for (const field of ['subtotal', 'shipping_fee', 'tax', 'discount', 'total']) {
+    for (const field of [
+      'subtotal',
+      'shipping_fee',
+      'tax',
+      'discount',
+      'total',
+    ]) {
       if (value[field] !== undefined) value[field] = Number(value[field]);
     }
     return value;

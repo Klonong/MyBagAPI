@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,7 +11,10 @@ import {
   ProductPaginationDto,
   ProductSort,
 } from './dto/product-pagination.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
+import {
+  UpdateProductColorDto,
+  UpdateProductDto,
+} from './dto/update-product.dto';
 
 const productInclude = {
   categories: true,
@@ -130,16 +134,42 @@ export class ProductsService {
     };
   }
 
-  private paginatedResponse(
+  private async paginatedResponse(
     products: ProductWithRelations[],
     page: number,
     limit: number,
     total: number,
   ) {
+    const ratings = await this.getRatingSummary(
+      products.map((product) => product.id),
+    );
     return {
-      items: products.map((product) => this.serialize(product)),
+      items: products.map((product) => ({
+        ...this.serialize(product),
+        rating: ratings.get(product.id) ?? { average: 0, count: 0 },
+      })),
       meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
+  }
+
+  private async getRatingSummary(productIds: string[]) {
+    const summary = new Map<string, { average: number; count: number }>();
+    if (productIds.length === 0) {
+      return summary;
+    }
+    const grouped = await this.prisma.product_reviews.groupBy({
+      by: ['product_id'],
+      where: { product_id: { in: productIds } },
+      _avg: { rating: true },
+      _count: { rating: true },
+    });
+    for (const group of grouped) {
+      summary.set(group.product_id, {
+        average: group._avg.rating ?? 0,
+        count: group._count.rating,
+      });
+    }
+    return summary;
   }
 
   async findOne(id: string) {
@@ -150,7 +180,11 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
-    return this.serialize(product);
+    const ratings = await this.getRatingSummary([id]);
+    return {
+      ...this.serialize(product),
+      rating: ratings.get(id) ?? { average: 0, count: 0 },
+    };
   }
 
   async create(dto: CreateProductDto) {
@@ -166,6 +200,12 @@ export class ProductsService {
   }
 
   async update(id: string, dto: UpdateProductDto) {
+    if (dto.colors !== undefined) {
+      await this.validateColorIds(id, dto.colors);
+    }
+    if (dto.removeColorIds !== undefined && dto.removeColorIds.length > 0) {
+      await this.removeColors(id, dto.removeColorIds);
+    }
     try {
       const product = await this.prisma.products.update({
         where: { id },
@@ -175,6 +215,49 @@ export class ProductsService {
       return this.serialize(product);
     } catch (error) {
       this.handleRelationError(error);
+    }
+  }
+
+  private async validateColorIds(
+    productId: string,
+    colors: UpdateProductColorDto[],
+  ) {
+    const idsToUpdate = colors
+      .filter((color) => color.id !== undefined)
+      .map((color) => BigInt(color.id!));
+    if (idsToUpdate.length === 0) {
+      return;
+    }
+    const existing = await this.prisma.product_colors.findMany({
+      where: { id: { in: idsToUpdate }, product_id: productId },
+      select: { id: true },
+    });
+    if (existing.length !== idsToUpdate.length) {
+      throw new NotFoundException(
+        'One or more colors do not belong to this product',
+      );
+    }
+  }
+
+  private async removeColors(productId: string, colorIds: number[]) {
+    for (const rawId of colorIds) {
+      const colorId = BigInt(rawId);
+      const color = await this.prisma.product_colors.findUnique({
+        where: { id: colorId },
+      });
+      if (!color || color.product_id !== productId) {
+        throw new NotFoundException(`Color ${rawId} not found on this product`);
+      }
+      try {
+        await this.prisma.product_colors.delete({ where: { id: colorId } });
+      } catch (error) {
+        if (this.isPrismaCode(error, 'P2003')) {
+          throw new ConflictException(
+            'Color is still referenced by an existing cart or order',
+          );
+        }
+        throw error;
+      }
     }
   }
 
@@ -237,16 +320,54 @@ export class ProductsService {
       };
     }
     if (dto.colors !== undefined) {
+      const colorsToCreate = dto.colors.filter(
+        (color) => color.id === undefined,
+      );
+      const colorsToUpdate = dto.colors.filter(
+        (color) => color.id !== undefined,
+      );
+
+      for (const color of colorsToCreate) {
+        if (color.stock === undefined || color.imageUrls === undefined) {
+          throw new BadRequestException(
+            'New colors require stock and imageUrls',
+          );
+        }
+      }
+
       data.product_colors = {
-        deleteMany: {},
-        create: dto.colors.map((color) => ({
-          name: color.name,
-          hex_code: color.hexCode,
-          stock: BigInt(color.stock),
-          product_color_images: {
-            create: color.imageUrls.map((image_url) => ({ image_url })),
-          },
-        })),
+        ...(colorsToCreate.length > 0 && {
+          create: colorsToCreate.map((color) => ({
+            name: color.name,
+            hex_code: color.hexCode,
+            stock: BigInt(color.stock!),
+            product_color_images: {
+              create: color.imageUrls!.map((image_url) => ({ image_url })),
+            },
+          })),
+        }),
+        ...(colorsToUpdate.length > 0 && {
+          update: colorsToUpdate.map((color) => ({
+            where: { id: BigInt(color.id!) },
+            data: {
+              ...(color.name !== undefined && { name: color.name }),
+              ...(color.hexCode !== undefined && {
+                hex_code: color.hexCode,
+              }),
+              ...(color.stock !== undefined && {
+                stock: BigInt(color.stock),
+              }),
+              ...(color.imageUrls !== undefined && {
+                product_color_images: {
+                  deleteMany: {},
+                  create: color.imageUrls.map((image_url) => ({
+                    image_url,
+                  })),
+                },
+              }),
+            },
+          })),
+        }),
       };
     }
     return data;
