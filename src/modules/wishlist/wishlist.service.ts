@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { toJsonSafe } from '../../common/utils/serialize.util';
 import { AddWishlistItemDto } from './dto/add-wishlist-item.dto';
 
 const wishlistItemInclude = {
@@ -28,7 +29,7 @@ export class WishlistService {
       orderBy: { created_at: 'desc' },
     });
 
-    return this.toJsonSafe({
+    return toJsonSafe({
       items: items.map((item) => this.serializeWishlistItem(item)),
       total: items.length,
     });
@@ -65,7 +66,7 @@ export class WishlistService {
       include: wishlistItemInclude,
     });
 
-    return this.toJsonSafe(this.serializeWishlistItem(item));
+    return toJsonSafe(this.serializeWishlistItem(item));
   }
 
   async removeItem(userId: string, itemId: string) {
@@ -81,17 +82,13 @@ export class WishlistService {
     return { deleted: true };
   }
 
-  private toJsonSafe(value: any): any {
-    return JSON.parse(
-      JSON.stringify(value, (_key, val) =>
-        typeof val === 'bigint' ? Number(val) : val,
-      ),
-    );
-  }
-
   private serializeWishlistItem(item: any) {
-    const product = this.toJsonSafe(item.products);
-    const { category_id: _categoryId, badge_id: _badgeId, ...safeProduct } = product;
+    const product = toJsonSafe(item.products);
+    const {
+      category_id: _categoryId,
+      badge_id: _badgeId,
+      ...safeProduct
+    } = product;
 
     const response = {
       id: item.id,
@@ -126,6 +123,6 @@ export class WishlistService {
       },
     };
 
-    return this.toJsonSafe(response);
+    return toJsonSafe(response);
   }
 }

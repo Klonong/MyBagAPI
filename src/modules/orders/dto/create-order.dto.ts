@@ -1,4 +1,10 @@
-import { IsArray, IsIn, IsOptional, IsUUID, ArrayMinSize } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsUUID,
+  ArrayMinSize,
+} from 'class-validator';
 
 export class CreateOrderDto {
   @IsArray()

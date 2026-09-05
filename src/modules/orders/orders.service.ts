@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { toJsonSafe } from '../../common/utils/serialize.util';
 import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
@@ -27,7 +28,9 @@ export class OrdersService {
     });
 
     if (cartItems.length !== itemIds.length) {
-      throw new BadRequestException('One or more selected cart items are invalid');
+      throw new BadRequestException(
+        'One or more selected cart items are invalid',
+      );
     }
 
     if (dto.addressId) {
@@ -36,7 +39,9 @@ export class OrdersService {
         select: { id: true },
       });
       if (!address) {
-        throw new BadRequestException('Address does not belong to the current user');
+        throw new BadRequestException(
+          'Address does not belong to the current user',
+        );
       }
     }
 
@@ -92,18 +97,10 @@ export class OrdersService {
       include: { order_statuses: true, order_items: true },
     });
 
-    return this.toJsonSafe({
+    return toJsonSafe({
       ...order,
       status: order.order_statuses.code,
       order_statuses: undefined,
     });
-  }
-
-  private toJsonSafe(value: unknown) {
-    return JSON.parse(
-      JSON.stringify(value, (_key, item) =>
-        typeof item === 'bigint' ? Number(item) : item,
-      ),
-    );
   }
 }

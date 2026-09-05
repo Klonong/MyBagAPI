@@ -12,8 +12,8 @@ Pioma API is the backend service for the Pioma platform, built with [NestJS](htt
 | Database | PostgreSQL |
 | ORM | [Prisma](https://www.prisma.io/) (`@prisma/client`, `prisma`) |
 | Auth | JWT (`@nestjs/jwt`), password hashing with `bcrypt` |
-| Caching | `@nestjs/cache-manager` + `cache-manager` |
-| Queues | `@nestjs/bullmq` + `bullmq` (Redis-backed) |
+| Caching | `ioredis` — cache-aside for catalog/settings reads, see [Caching](#caching) below |
+| Queues | `@nestjs/bullmq` + `bullmq` (Redis-backed; not yet wired to a processor) |
 | Rate limiting | `@nestjs/throttler` |
 | API docs | `@nestjs/swagger` (OpenAPI, served at `/docs`) |
 | Validation | `class-validator` / `class-transformer` |
@@ -28,14 +28,18 @@ prisma/
   schema.prisma        # Prisma schema (PostgreSQL datasource)
 src/
   main.ts               # App bootstrap: helmet, validation pipe, Swagger at /docs
-  app.module.ts         # Root module wiring Config, Throttler, Prisma, Auth
+  app.module.ts         # Root module wiring Config, Throttler, Prisma, Redis, Auth
   common/
     filters/            # Global exception filters
+    utils/              # Shared helpers: BigInt-safe JSON serialization, Prisma error -> HTTP exception mapping, pagination
   config/
     configuration.ts    # Typed config loader (port, database, jwt, redis)
   database/
     prisma.module.ts    # Global Prisma module
     prisma.service.ts   # PrismaClient wrapper as injectable service
+  redis/
+    redis.module.ts     # Global Redis module
+    redis.service.ts    # ioredis wrapper: get/set/del + getOrSet cache-aside helper
   modules/
     auth/                # Authentication module (controller, service)
 test/
@@ -56,6 +60,14 @@ Environment variables (see [.env.example](.env.example)):
 | `REDIS_PORT` | Redis port | `6379` |
 
 Config is loaded centrally via [src/config/configuration.ts](src/config/configuration.ts) and exposed through `ConfigModule` globally.
+
+## Caching
+`RedisService` ([src/redis/redis.service.ts](src/redis/redis.service.ts)) wraps `ioredis` and is injected wherever read-heavy, rarely-changing data is served. Currently cached (cache-aside, via `getOrSet`), with cache invalidation on writes:
+- Product list (60s TTL) and product detail (300s TTL) — `ProductsService`
+- Category list (120s TTL) and category detail (300s TTL) — `CategoriesService`
+- Store settings (300s TTL) — `AdminService`
+
+Cart, wishlist, and orders are intentionally left uncached (per-user, mutate frequently). If Redis is unreachable, `getOrSet` logs a warning and falls back to the database rather than failing the request.
 
 ## Getting Started
 

@@ -12,7 +12,11 @@ describe('CartService', () => {
         {
           provide: PrismaService,
           useValue: {
-            carts: { findUnique: jest.fn(), findFirst: jest.fn(), upsert: jest.fn() },
+            carts: {
+              findUnique: jest.fn(),
+              findFirst: jest.fn(),
+              upsert: jest.fn(),
+            },
             cart_items: {
               findMany: jest.fn(),
               create: jest.fn(),
@@ -44,13 +48,17 @@ describe('CartService', () => {
         discount: 10n,
         category_id: 7n,
         badge_id: 9n,
-        product_images: [{ id: 1n, image_url: 'a.jpg', product_id: 'product-1' }],
+        product_images: [
+          { id: 1n, image_url: 'a.jpg', product_id: 'product-1' },
+        ],
         product_colors: [
           {
             id: 3n,
             stock: 5n,
             product_id: 'product-1',
-            product_color_images: [{ id: 2n, image_url: 'b.jpg', color_id: 3n }],
+            product_color_images: [
+              { id: 2n, image_url: 'b.jpg', color_id: 3n },
+            ],
           },
         ],
         categories: { id: 7n, name: 'Category' },
@@ -72,7 +80,9 @@ describe('CartService', () => {
     expect(result.product.category_id).toBeUndefined();
     expect(result.product.badge_id).toBeUndefined();
     expect(result.product.product_images[0].id).toBe(1);
-    expect(result.product.product_colors[0].product_color_images[0].color_id).toBe(3);
+    expect(
+      result.product.product_colors[0].product_color_images[0].color_id,
+    ).toBe(3);
     expect(result.color.id).toBe(3);
   });
 });

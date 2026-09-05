@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { toJsonSafe } from '../../common/utils/serialize.util';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
@@ -35,7 +36,7 @@ export class CartService {
     });
 
     if (!cart) {
-      return this.toJsonSafe({ id: null, items: [], subtotal: 0, totalItems: 0 });
+      return toJsonSafe({ id: null, items: [], subtotal: 0, totalItems: 0 });
     }
 
     const items = cart.cart_items.map((item) => this.serializeCartItem(item));
@@ -44,7 +45,7 @@ export class CartService {
       0,
     );
 
-    return this.toJsonSafe({
+    return toJsonSafe({
       id: cart.id,
       items,
       subtotal,
@@ -78,7 +79,7 @@ export class CartService {
         include: cartItemInclude,
       });
 
-      return this.toJsonSafe(this.serializeCartItem(updatedItem));
+      return toJsonSafe(this.serializeCartItem(updatedItem));
     }
 
     const createdItem = await this.prisma.cart_items.create({
@@ -91,7 +92,7 @@ export class CartService {
       include: cartItemInclude,
     });
 
-    return this.toJsonSafe(this.serializeCartItem(createdItem));
+    return toJsonSafe(this.serializeCartItem(createdItem));
   }
 
   async updateItem(userId: string, itemId: string, dto: UpdateCartItemDto) {
@@ -110,7 +111,7 @@ export class CartService {
       include: cartItemInclude,
     });
 
-    return this.toJsonSafe(this.serializeCartItem(updatedItem));
+    return toJsonSafe(this.serializeCartItem(updatedItem));
   }
 
   async removeItem(userId: string, itemId: string) {
@@ -171,17 +172,13 @@ export class CartService {
     }
   }
 
-  private toJsonSafe(value: any): any {
-    return JSON.parse(
-      JSON.stringify(value, (_key, val) =>
-        typeof val === 'bigint' ? Number(val) : val,
-      ),
-    );
-  }
-
   private serializeCartItem(item: any) {
-    const product = this.toJsonSafe(item.products);
-    const { category_id: _categoryId, badge_id: _badgeId, ...safeProduct } = product;
+    const product = toJsonSafe(item.products);
+    const {
+      category_id: _categoryId,
+      badge_id: _badgeId,
+      ...safeProduct
+    } = product;
     const price = Number(product.price);
     const discount = Number(product.discount ?? 0);
     const finalPrice = discount > 0 ? price - discount : price;
@@ -220,19 +217,19 @@ export class CartService {
       },
       color: item.product_colors
         ? {
-            ...this.toJsonSafe(item.product_colors),
+            ...toJsonSafe(item.product_colors),
             id: Number(item.product_colors.id),
             stock: Number(item.product_colors.stock),
-            product_color_images: (item.product_colors.product_color_images ?? []).map(
-              (image: any) => ({
-                ...this.toJsonSafe(image),
-                id: Number(image.id),
-              }),
-            ),
+            product_color_images: (
+              item.product_colors.product_color_images ?? []
+            ).map((image: any) => ({
+              ...toJsonSafe(image),
+              id: Number(image.id),
+            })),
           }
         : null,
     };
 
-    return this.toJsonSafe(response);
+    return toJsonSafe(response);
   }
 }

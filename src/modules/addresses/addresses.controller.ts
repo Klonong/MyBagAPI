@@ -15,10 +15,7 @@ export class AddressesController {
   }
 
   @Post()
-  create(
-    @Req() req: AuthenticatedRequest,
-    @Body() dto: CreateAddressDto,
-  ) {
+  create(@Req() req: AuthenticatedRequest, @Body() dto: CreateAddressDto) {
     return this.addressesService.create(req.user.sub, dto);
   }
 }

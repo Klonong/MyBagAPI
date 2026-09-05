@@ -22,7 +22,11 @@ import {
   UpdateOrderStatusDto,
   UpdateSettingsDto,
 } from './dto/admin.dto';
-import { CreateDiscountDto, DiscountQueryDto, UpdateDiscountDto } from './dto/discount.dto';
+import {
+  CreateDiscountDto,
+  DiscountQueryDto,
+  UpdateDiscountDto,
+} from './dto/discount.dto';
 import { AdminService } from './admin.service';
 
 @Controller('admin')
