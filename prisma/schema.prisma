@@ -275,3 +275,15 @@ model wishlist_items {
   @@unique([user_id, product_id])
   @@index([user_id], map: "idx_wishlist_items_user_id")
 }
+
+/// Newsletter opt-ins captured from the storefront footer, homepage and
+/// account settings. Email is unique so a repeat signup is idempotent.
+model newsletter_subscribers {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String    @unique @db.VarChar(255)
+  source     String?   @db.VarChar(100)
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  updated_at DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  @@index([created_at], map: "idx_newsletter_subscribers_created_at")
+}

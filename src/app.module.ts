@@ -15,6 +15,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { BadgesModule } from './modules/badges/badges.module';
 import { UsersModule } from './modules/users/users.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { NewsletterModule } from './modules/newsletter/newsletter.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -33,6 +34,7 @@ import configuration from './config/configuration';
     BadgesModule,
     UsersModule,
     ReviewsModule,
+    NewsletterModule,
   ],
   controllers: [AppController],
   providers: [AppService],

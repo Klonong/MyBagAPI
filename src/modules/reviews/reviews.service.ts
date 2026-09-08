@@ -42,6 +42,41 @@ export class ReviewsService {
     );
   }
 
+  /**
+   * Recent, well-rated reviews across the whole catalogue, joined with just
+   * enough product detail to link and illustrate each quote.
+   */
+  async featured(limit: number) {
+    const take = Math.min(Math.max(limit, 1), 24);
+
+    const items = await this.prisma.product_reviews.findMany({
+      where: { rating: { gte: 4 }, comment: { not: null } },
+      orderBy: { created_at: 'desc' },
+      take,
+      include: {
+        users: { select: { id: true, name: true } },
+        products: {
+          select: {
+            id: true,
+            name: true,
+            product_images: { select: { image_url: true }, take: 1 },
+          },
+        },
+      },
+    });
+
+    return {
+      items: items.map((item) => ({
+        ...this.serialize(item),
+        product: {
+          id: item.products.id,
+          name: item.products.name,
+          image: item.products.product_images[0]?.image_url ?? null,
+        },
+      })),
+    };
+  }
+
   async create(productId: string, userId: string, dto: CreateReviewDto) {
     const product = await this.prisma.products.findUnique({
       where: { id: productId },
