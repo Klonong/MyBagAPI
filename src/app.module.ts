@@ -16,6 +16,8 @@ import { BadgesModule } from './modules/badges/badges.module';
 import { UsersModule } from './modules/users/users.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { NewsletterModule } from './modules/newsletter/newsletter.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { HomeContentModule } from './modules/home-content/home-content.module';
 import configuration from './config/configuration';
 
 @Module({
@@ -35,6 +37,8 @@ import configuration from './config/configuration';
     UsersModule,
     ReviewsModule,
     NewsletterModule,
+    UploadsModule,
+    HomeContentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -56,6 +56,12 @@ model discounts {
   @@index([starts_at, ends_at], map: "idx_discounts_dates")
 }
 
+model home_content {
+  id         Int      @id @default(1)
+  content    Json     @default("{}")
+  updated_at DateTime @updatedAt @db.Timestamp(6)
+}
+
 model store_settings {
   id            Int      @id @default(1)
   store_name    String   @default("Pioma") @db.VarChar(255)

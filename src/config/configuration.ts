@@ -13,4 +13,12 @@ export default () => ({
     port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
     password: process.env.REDIS_PASSWORD,
   },
+  r2: {
+    accountId: process.env.R2_ACCOUNT_ID,
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    bucket: process.env.R2_BUCKET,
+    /** Public base URL for the bucket: the r2.dev URL or a custom domain. */
+    publicUrl: process.env.R2_PUBLIC_URL?.replace(/\/$/, ''),
+  },
 });
