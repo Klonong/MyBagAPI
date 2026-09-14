@@ -90,7 +90,12 @@ export class AuthController {
   private setAuthCookie(res: Response, token: string) {
     res.cookie(ACCESS_TOKEN_COOKIE, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      // Browsers silently drop a Secure cookie sent over plain HTTP, which
+      // looks like a successful login followed by 401s on every request.
+      // COOKIE_SECURE=false is the opt-out for an HTTP-only deployment.
+      secure: process.env.COOKIE_SECURE
+        ? process.env.COOKIE_SECURE === 'true'
+        : process.env.NODE_ENV === 'production',
       sameSite: 'lax',
     });
   }
